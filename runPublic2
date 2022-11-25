@@ -1,0 +1,48 @@
+#!/usr/bin/csh
+rm -f *.log
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/public-assoc.trace > public-assoc.log
+code/sim -bs 16 -us 256 -a 2 -wb -wa traces/public-assoc.trace >> public-assoc.log
+code/sim -bs 16 -us 256 -a 4 -wb -wa traces/public-assoc.trace >> public-assoc.log
+code/sim -bs 16 -us 256 -a 8 -wb -wa traces/public-assoc.trace >> public-assoc.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/public-block.trace > public-block.log
+code/sim -bs 8 -us 256 -a 1 -wb -wa traces/public-block.trace >> public-block.log
+code/sim -bs 4 -us 256 -a 1 -wb -wa traces/public-block.trace >> public-block.log
+code/sim -bs 32 -us 256 -a 1 -wb -wa traces/public-block.trace >> public-block.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/public-instr.trace > public-instr.log
+code/sim -bs 16 -us 512 -a 1 -wb -wa traces/public-instr.trace >> public-instr.log
+code/sim -bs 16 -is 128 -ds 128 -a 1 -wb -wa traces/public-instr.trace >> public-instr.log
+code/sim -bs 16 -is 256 -ds 256 -a 1 -wb -wa traces/public-instr.trace >> public-instr.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/public-write.trace > public-write.log
+code/sim -bs 16 -us 256 -a 1 -wt -wa traces/public-write.trace >> public-write.log
+code/sim -bs 16 -us 256 -a 1 -wb -nw traces/public-write.trace >> public-write.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/spice10000.trace > spice10000-assoc.log
+code/sim -bs 16 -us 256 -a 2 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+code/sim -bs 16 -us 256 -a 4 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+code/sim -bs 16 -us 256 -a 8 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+code/sim -bs 16 -us 8192 -a 2 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+code/sim -bs 16 -us 8192 -a 4 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+code/sim -bs 16 -us 8192 -a 8 -wb -wa traces/spice10000.trace >> spice10000-assoc.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/spice10000.trace > spice10000-block.log
+code/sim -bs 8 -us 256 -a 1 -wb -wa traces/spice10000.trace >> spice10000-block.log
+code/sim -bs 4 -us 256 -a 1 -wb -wa traces/spice10000.trace >> spice10000-block.log
+code/sim -bs 32 -us 8192 -a 1 -wb -wa traces/spice10000.trace >> spice10000-block.log
+code/sim -bs 64 -us 8192 -a 1 -wb -wa traces/spice10000.trace >> spice10000-block.log
+code/sim -bs 128 -us 8192 -a 1 -wb -wa traces/spice10000.trace >> spice10000-block.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/spice10000.trace > spice10000-instr.log
+code/sim -bs 16 -us 512 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+code/sim -bs 16 -is 128 -ds 128 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+code/sim -bs 16 -is 256 -ds 256 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+code/sim -bs 16 -is 1024 -ds 1024 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+code/sim -bs 16 -is 4096 -ds 4096 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+code/sim -bs 16 -is 8192 -ds 8192 -a 1 -wb -wa traces/spice10000.trace >> spice10000-instr.log
+
+code/sim -bs 16 -us 256 -a 1 -wb -wa traces/spice10000.trace > spice10000-write.log
+code/sim -bs 16 -us 256 -a 1 -wt -wa traces/spice10000.trace >> spice10000-write.log
+code/sim -bs 16 -us 256 -a 1 -wb -nw traces/spice10000.trace >> spice10000-write.log
+

@@ -1,0 +1,10 @@
+.vs
+x64
+*.trace
+*.zip
+*.out
+submit.jar
+sim.pdf
+*.txt
+*.exe
+*.o
