@@ -23,10 +23,6 @@ static int cache_writealloc = DEFAULT_CACHE_WRITEALLOC;
 /* cache model data structures */
 static Pcache icache;
 static Pcache dcache;
-// cgg created ucached as a unified cache, I didn't
-// cgg know if unified should be one cache so I just assumed it did
-// static Pcache ucache;
-
 static cache c1;
 static cache c2;
 static cache_stat cache_stat_inst;
@@ -77,7 +73,6 @@ int value;
   }
 }
 
-// cgg
 int extractBits(int value, int numBits, int startBit)
 {
   int bits = (value >> startBit) & ((1u << numBits) - 1);
@@ -144,7 +139,7 @@ void init_cache()
     // mask bits   3322 2222 2222 1111 1111 1198 7654 3210 <---- bit number index 1's place
     // mask is now 1111 1111 1111 1111 1111 1111 1111 1111
     // extractBits(mask, 9+4, 0)-> extract 13 bits starting at index 0
-    mask = extractBits(mask, num_index_bits + dcache->index_mask_offset, 0); // cgg extract out the index/offset bits mask
+    mask = extractBits(mask, num_index_bits + dcache->index_mask_offset, 0); // extract out the index/offset bits mask
 
     //            1098 7654 3210 9876 5432 10             <---- bit number 10's place
     // mask bits   3322 2222 2222 1111 1111 1198 7654 3210 <---- bit number 1' place
@@ -192,7 +187,7 @@ void init_cache()
     // of associativity, because each set will have "n" cache lines. In direct map
     // each set had only one cache line.
     dcache->n_sets = dcache->size / cache_block_size;
-    dcache->n_sets = dcache->n_sets / cache_assoc; // cgg for set associative one cache line per set of associates
+    dcache->n_sets = dcache->n_sets / cache_assoc; //   for set associative one cache line per set of associates
 
     // the set_contents keeps track of how many cache lines in each set so
     // we know when the cache is full. need to check this when inserting cach lines
@@ -232,12 +227,12 @@ void init_cache()
 
     if (icache->associativity == 1)
     {
-      // cgg direct mapping
+      //   direct mapping
       icache->n_sets = icache->size / cache_block_size;
 
       int num_index_bits = LOG2(icache->n_sets);
-      int mask = 0xFFFFFFFF;                                                   // cgg start with all 1's
-      mask = extractBits(mask, num_index_bits + icache->index_mask_offset, 0); // cgg extract out the index/offset bits mask
+      int mask = 0xFFFFFFFF;                                                   //   start with all 1's
+      mask = extractBits(mask, num_index_bits + icache->index_mask_offset, 0); //   extract out the index/offset bits mask
 
       icache->index_mask = mask;
 
@@ -254,10 +249,10 @@ void init_cache()
     }
     else if (icache->associativity > 1)
     {
-      // cgg create for set associative
+      //   create for set associative
 
       icache->n_sets = icache->size / cache_block_size;
-      icache->n_sets = icache->n_sets / cache_assoc; // cgg for set associative one cache line per set of associates
+      icache->n_sets = icache->n_sets / cache_assoc; //   for set associative one cache line per set of associates
       icache->set_contents = (int *)malloc(sizeof(int) * icache->n_sets);
 
       icache->LRU_head = (Pcache_line *)malloc(sizeof(Pcache_line) * icache->n_sets);
@@ -276,10 +271,10 @@ void init_cache()
 /************************************************************/
 
 /************************************************************/
-// cgg set associative cache function
+//   set associative cache function
 void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, cache_stat *cacheStat)
 {
-  // cgg need to implement
+  //   need to implement
   cacheStat->accesses++;
   int num_index_bits = LOG2(ucache->n_sets);
   unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
@@ -302,12 +297,12 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
     else
     {
       // write HIT
-      //  cgg write/store
+      //    write/store
       if (ucache->LRU_head[index_u]->dirty == 1)
       {
-        // cgg write data back to memory.
-        cacheStat->copies_back++;             // cgg cache is dirty write back to memory
-        ucache->LRU_head[index_u]->dirty = 0; // cgg write back makes it clean?
+        //   write data back to memory.
+        cacheStat->copies_back++;             //   cache is dirty write back to memory
+        ucache->LRU_head[index_u]->dirty = 0; //   write back makes it clean?
       }
 
       if (ucache->LRU_head[index_u]->tag != addr_tag)
@@ -402,7 +397,7 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
   }
 }
 
-// cgg directMap cache function
+//   directMap cache function
 void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, cache_stat *cacheStat)
 {
   // this code is direct mapping code
@@ -425,7 +420,7 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
   if (ucache->LRU_head[index_u]->tag == addr_tag)
   {
     //printf("HIT\n");
-    // cgg HIT
+    //   HIT
     if (access_type == 0 || access_type == 2)
     {
       // this is a read/load
@@ -438,12 +433,12 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
     else
     {
 
-      // cgg write/store
+      //   write/store
       if (ucache->LRU_head[index_u]->dirty == 1)
       {
-        // cgg write data back to memory.
-        cacheStat->copies_back++;             // cgg cache is dirty write back to memory
-        ucache->LRU_head[index_u]->dirty = 0; // cgg write back makes it clean?
+        //   write data back to memory.
+        cacheStat->copies_back++;             //   cache is dirty write back to memory
+        ucache->LRU_head[index_u]->dirty = 0; //   write back makes it clean?
       }
 
       if (ucache->LRU_head[index_u]->tag != addr_tag)
@@ -454,7 +449,7 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
   else
   {
 
-    // cgg MISS
+    //   MISS
     cacheStat->misses++;
 
     if (access_type == 0 || access_type == 2)
@@ -476,7 +471,7 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
     else
     {
       // this is a write miss
-      // cgg add an entry into the cache
+      //   add an entry into the cache
       if (!cache_writeback)
       {
         ucache->LRU_head[index_u]->dirty = 0;
@@ -550,7 +545,7 @@ void perform_access(addr, access_type) unsigned addr, access_type;
   }
   else if (cache_assoc > 1)
   {
-    // cgg set associative
+    //   set associative
     if (cache_split)
     {
       if (access_type == 0 || access_type == 1)
