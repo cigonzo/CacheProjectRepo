@@ -37,6 +37,10 @@ typedef struct cache_line_ {
   struct cache_line_ *LRU_prev;
 } cache_line, *Pcache_line;//
 
+// float * x = (float*)malloc(sizeof(float));
+// float ** y = (float**)malloc(sizeof(float*));
+// y[0] = (float*)malloc(sizeof(float));
+
 
 typedef struct cache_ {
   int size;			/* cache size */

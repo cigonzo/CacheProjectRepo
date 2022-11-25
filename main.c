@@ -158,10 +158,7 @@ myprint(tcache->LRU_head[0]);
   
   parse_args(argc, argv);
   init_cache();
-  printf("done init cache\n");
- 
   play_trace(traceFile);
-  printf("done play_trace\n");
   print_stats();
 }
 
@@ -291,7 +288,6 @@ void play_trace(inFile)
   num_inst = 0;
   while (read_trace_element(inFile, &access_type, &addr))
   {
-   printf("done rte access_type = %d addr = %d\n",access_type, addr);
     switch (access_type)
     {
     case TRACE_DATA_LOAD:
