@@ -276,8 +276,20 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
 {
   //   need to implement
   cacheStat->accesses++;
+  printf("setAssoc\n");
+  // get the index bits so that the tag can be extracted out of the address
   int num_index_bits = LOG2(ucache->n_sets);
-  unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
+
+  // the number of tag bits is the left over from index bits and offset bits
+  //  number of tag bits is 32 - (num_index_bits + offset bits)
+  // extract out the tag by extracting out tag bits starting index bits + offset
+  // for example,
+  // addr = 0000 0000 0100 0000 1011 1100 0111 0100
+  // number of index bits = 9
+  // number of offset bits = 4
+  // the tag bits are bits 14-31
+   unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
+  // addr_tag is now 0000 0000 0100 0000 101
   // printf("tag  = %-12x\n", addr_tag);
 
   unsigned index_u = (addr & ucache->index_mask) >> ucache->index_mask_offset;
@@ -301,13 +313,28 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
       if (ucache->LRU_head[index_u]->dirty == 1)
       {
         //   write data back to memory.
-        cacheStat->copies_back++;             //   cache is dirty write back to memory
+        printf("copies back1\n");
+        /*
+        for (int i = 0; i < words_per_block; i++)
+        {
+          // added
+          cacheStat->copies_back++;             //   cache is dirty write back to memory
+        }
+        */
+        //cacheStat->copies_back++;             //   cache is dirty write back to memory
         ucache->LRU_head[index_u]->dirty = 0; //   write back makes it clean?
       }
 
-      if (ucache->LRU_head[index_u]->tag != addr_tag)
-        cacheStat->replacements++;
-
+      if (ucache->LRU_head[index_u]->tag != addr_tag){
+        //cacheStat->replacements++;
+        //Replacement count
+        if(access_type == 0 || access_type == 1){
+          cache_stat_data.replacements++;
+        }
+        else{
+          cache_stat_inst.replacements++;
+        }
+      }
       Pcache_line temp = ucache->LRU_head[index_u];
       delete (&ucache->LRU_head[index_u], &ucache->LRU_tail[index_u], temp);
       insert(&ucache->LRU_head[index_u], &ucache->LRU_tail[index_u], temp);
@@ -316,13 +343,21 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
   else
   {
     // MISS
+    // counts demand fetches only for misses?
+    for (int i = 0; i < words_per_block; i++)
+    {
+      cacheStat->demand_fetches++;
+    }
     if (access_type == 0 || access_type == 2)
     {
       // this is a read
-      for (int i = 0; i < words_per_block; i++)
+      printf("this one3\n");
+      // counts demand fetches only for misses?
+      /*for (int i = 0; i < words_per_block; i++)
       {
         cacheStat->demand_fetches++;
       }
+      */
       // insert tag into cache
 
       if (ucache->set_contents[index_u] < ucache->associativity)
@@ -335,7 +370,14 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
         insert(&ucache->LRU_head[index_u], &ucache->LRU_tail[index_u], item);
         ucache->set_contents[index_u] = ucache->set_contents[index_u] + 1;
         ucache->LRU_head[index_u]->dirty = 0;
-        cacheStat->replacements++;
+        //cacheStat->replacements++;
+        //Replacement count
+        if(access_type == 0 || access_type == 1){
+          cache_stat_data.replacements++;
+        }
+        else{
+          cache_stat_inst.replacements++;
+        }
       }
       else
       {
@@ -369,6 +411,13 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
           ucache->set_contents[index_u] = ucache->set_contents[index_u] + 1;
           ucache->LRU_head[index_u]->dirty = 0;
           cacheStat->replacements++;
+          //Replacement count
+          if(access_type == 0 || access_type == 1){
+            cache_stat_data.replacements++;
+          }
+          else{
+            cache_stat_inst.replacements++;
+          }
         }
         else
         {
@@ -389,8 +438,16 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
       {
         // write back policy
         ucache->LRU_head[index_u]->dirty = 1;
-        if (ucache->LRU_head[index_u]->tag != addr_tag)
-          cacheStat->replacements++;
+        if (ucache->LRU_head[index_u]->tag != addr_tag){
+          //cacheStat->replacements++;
+          //Replacement count
+          if(access_type == 0 || access_type == 1){
+            cache_stat_data.replacements++;
+          }
+          else{
+            cache_stat_inst.replacements++;
+          }
+        }
         ucache->LRU_head[index_u]->tag = addr_tag;
       }
     }
@@ -402,7 +459,8 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
 {
   // this code is direct mapping code
   // updates access count
-  cacheStat->accesses++;
+  //cacheStat->accesses++;
+  //printf("directMap\n");
 
   // figures out index bits
   int num_index_bits = LOG2(ucache->n_sets);
@@ -421,28 +479,57 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
   {
     //printf("HIT\n");
     //   HIT
+    if(access_type == 0 || access_type == 1){
+      cache_stat_data.accesses++;
+    }
+    else{
+      cache_stat_inst.accesses++;
+    }
+
     if (access_type == 0 || access_type == 2)
     {
       // this is a read/load
+      //printf("this one");
+      printf("data read hit\n");
+      /* no counting demand fetches for hits????
       for (int i = 0; i < words_per_block; i++)
       {
         // increment fetch count
-        cacheStat->demand_fetches++;
+        //cacheStat->demand_fetches++;
       }
+      */
     }
     else
     {
 
       //   write/store
+      printf("data write hit\n");
       if (ucache->LRU_head[index_u]->dirty == 1)
       {
         //   write data back to memory.
+        //issue with public-write.trace
+        printf("copies back2\n");
+        /*
+        for (int i = 0; i < words_per_block; i++)
+      {
+        // added
         cacheStat->copies_back++;             //   cache is dirty write back to memory
+      }
+      */
+        //cacheStat->copies_back++;             //   cache is dirty write back to memory
         ucache->LRU_head[index_u]->dirty = 0; //   write back makes it clean?
       }
 
-      if (ucache->LRU_head[index_u]->tag != addr_tag)
+      if (ucache->LRU_head[index_u]->tag != addr_tag){
         cacheStat->replacements++;
+        //Replacement count
+        if(access_type == 0 || access_type == 1){
+          cache_stat_data.replacements++;
+        }
+        else{
+          cache_stat_inst.replacements++;
+        }
+      }
       ucache->LRU_head[index_u]->tag = addr_tag;
     }
   }
@@ -450,27 +537,67 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
   {
 
     //   MISS
-    cacheStat->misses++;
+    // counts demand fetches only for misses???
+    for (int i = 0; i < words_per_block; i++)
+    {
+      cacheStat->demand_fetches++;
+      // logic wrong!!!! for start of if
+      if (ucache->LRU_head[index_u]->dirty == 1){
+        cacheStat->copies_back++;             //   cache is dirty write back to memory
+      }
+    }
+
+    // Access and Miss counts
+
+    if(access_type == 0 || access_type == 1){
+      cache_stat_data.accesses++;
+      cache_stat_data.misses++;
+    }
+    else{
+      cache_stat_inst.accesses++;
+      cache_stat_inst.misses++;
+    }
+    
 
     if (access_type == 0 || access_type == 2)
     {
       // this is a read
+      if(access_type == 0){
+        printf("data read miss \n");
+      }
+      if(access_type == 2){
+        printf("instr read miss \n");
+      }
+      //printf("this one2\n");
+      // counts demand fetches, only for misses???
+      /*
       for (int i = 0; i < words_per_block; i++)
       {
         cacheStat->demand_fetches++;
       }
+      */
       // insert tag into cache
       ucache->LRU_head[index_u]->dirty = 0;
       //printf("ct = %d\n", ucache->LRU_head[index_u]->tag);
 
-      if (ucache->LRU_head[index_u]->tag != addr_tag && ucache->LRU_head[index_u]->tag != 999999)
-        cacheStat->replacements++;
+      if (ucache->LRU_head[index_u]->tag != addr_tag && ucache->LRU_head[index_u]->tag != 999999){
+        //Replacement count
+        if(access_type == 0 || access_type == 1){
+          cache_stat_data.replacements++;
+        }
+        else{
+          cache_stat_inst.replacements++;
+        }
+    
+      }
+
 
       ucache->LRU_head[index_u]->tag = addr_tag;
     }
     else
     {
       // this is a write miss
+      printf("data instr miss \n");
       //   add an entry into the cache
       if (!cache_writeback)
       {
@@ -482,8 +609,17 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
       {
         // write back policy
         ucache->LRU_head[index_u]->dirty = 1;
-        if (ucache->LRU_head[index_u]->tag != addr_tag)
-          cacheStat->replacements++;
+        if (ucache->LRU_head[index_u]->tag != addr_tag){
+          //cacheStat->replacements++;
+          //Replacement count
+          if(access_type == 0 || access_type == 1){
+            cache_stat_data.replacements++;
+            
+          }
+          else{
+            cache_stat_inst.replacements++;
+          }
+        }
         ucache->LRU_head[index_u]->tag = addr_tag;
       }
     }
@@ -564,6 +700,7 @@ void perform_access(addr, access_type) unsigned addr, access_type;
     {
       // unified cache
       //do data cache
+      // changed dcache to icahce
       setAssoc(index_mask_offset, addr, access_type, dcache, &cache_stat_data);
     }
   }
