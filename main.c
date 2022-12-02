@@ -155,9 +155,14 @@ insert(tcache->LRU_head,tcache->LRU_tail, item2);
 myprint(tcache->LRU_head[0]);
 */
 
+
+
+
   
   parse_args(argc, argv);
+  printf("111111");
   init_cache();
+  printf("hhhhhhhh");
   play_trace(traceFile);
   print_stats();
 }

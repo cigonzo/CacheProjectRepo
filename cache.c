@@ -88,7 +88,8 @@ void init_cache()
 
   // the offset bits are always the log 2 of block size
   int index_mask_offset = LOG2(cache_block_size);
-
+  printf("indexINIT:%d %d\n",index_mask_offset,cache_block_size);
+  //exit(1);
   // always allocate dcache because unified uses dcache
 
   // set all dcache stats to zero
@@ -103,7 +104,7 @@ void init_cache()
   dcache->associativity = cache_assoc;
 
   // use unified size if user selected unified -us
-  if (cache_split)
+  if (cache_split == TRUE)
     dcache->size = cache_dsize;
   else
     dcache->size = cache_usize;
@@ -115,7 +116,6 @@ void init_cache()
   if (dcache->associativity == 1)
   {
     // allocate direct map data structure
-
     // doing direct map
 
     // the number of sets is the cache size divided by block size
@@ -129,21 +129,12 @@ void init_cache()
     // address. The mask is just setting 1's where the index bits reside in the address.
     // Since there are index_mask_offset bits we have to start extracting from that bit.
 
-    // for example,
-    // an integer is 32 bits
-    // num_index_bits = 9 bits
-    // index_mask_offset = 4 bits
-    // there fore the tag bits is what is left over, tag bits = 32 - 9 - 4
     int mask = 0xFFFFFFFF;
-    //            1098 7654 3210 9876 5432 10             <---- bit number index 10's place
-    // mask bits   3322 2222 2222 1111 1111 1198 7654 3210 <---- bit number index 1's place
-    // mask is now 1111 1111 1111 1111 1111 1111 1111 1111
+
     // extractBits(mask, 9+4, 0)-> extract 13 bits starting at index 0
     mask = extractBits(mask, num_index_bits + dcache->index_mask_offset, 0); // extract out the index/offset bits mask
 
-    //            1098 7654 3210 9876 5432 10             <---- bit number 10's place
-    // mask bits   3322 2222 2222 1111 1111 1198 7654 3210 <---- bit number 1' place
-    // mask is now 0000 0000 0000 0000 0001 1111 1111 1111
+  
     // it is going to mask the last 13 bits, index bits + offset bits
     dcache->index_mask = mask;
 
@@ -181,11 +172,13 @@ void init_cache()
 
   else if (dcache->associativity > 1)
   {
+    printf("     assoc above 1\n");
     // allocate set associative data structure
 
     // number of sets is the number of sets like direct map but divided by the number
     // of associativity, because each set will have "n" cache lines. In direct map
     // each set had only one cache line.
+    //printf("associativity is running\n");
     dcache->n_sets = dcache->size / cache_block_size;
     dcache->n_sets = dcache->n_sets / cache_assoc; //   for set associative one cache line per set of associates
 
@@ -208,9 +201,10 @@ void init_cache()
 
   /* initialize the cache, and cache statistics data structures */
   // this is the same as the dcache above but just for the icache
-  if (cache_split)
+  printf("      before cache split\n");
+  if (cache_split == TRUE)
   {
-
+    printf("          cache split\n");
     // split cache means 2 caches i cache and d cache
 
     cache_stat_inst.accesses = 0;
@@ -224,7 +218,9 @@ void init_cache()
     icache->size = cache_isize;
 
     icache->index_mask_offset = index_mask_offset;
-
+    printf("init\n");
+    exit(1);
+    /*unified case*/
     if (icache->associativity == 1)
     {
       //   direct mapping
@@ -233,7 +229,8 @@ void init_cache()
       int num_index_bits = LOG2(icache->n_sets);
       int mask = 0xFFFFFFFF;                                                   //   start with all 1's
       mask = extractBits(mask, num_index_bits + icache->index_mask_offset, 0); //   extract out the index/offset bits mask
-
+      printf("mask 2assoc= %d\n",mask);
+      exit(1);
       icache->index_mask = mask;
 
       icache->LRU_head = (Pcache_line *)malloc(sizeof(Pcache_line) * icache->n_sets);
@@ -247,10 +244,16 @@ void init_cache()
         icache->LRU_head[i]->LRU_prev = NULL;
       }
     }
+    /*split case*/
     else if (icache->associativity > 1)
     {
       //   create for set associative
-
+      int num_index_bits = LOG2(icache->n_sets);
+      int mask = 0xFFFFFFFF;                                                   //   start with all 1's
+      mask = extractBits(mask, num_index_bits + icache->index_mask_offset, 0); //   extract out the index/offset bits mask
+      icache->index_mask = mask;
+      printf("mask111 = %d\n",mask);
+      exit(1);
       icache->n_sets = icache->size / cache_block_size;
       icache->n_sets = icache->n_sets / cache_assoc; //   for set associative one cache line per set of associates
       icache->set_contents = (int *)malloc(sizeof(int) * icache->n_sets);
@@ -270,14 +273,16 @@ void init_cache()
 /************************************************************/
 
 /************************************************************/
+
 //   set associative cache function
 void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, cache_stat *cacheStat)
 {
-  //   need to implement
-  //cacheStat->accesses++;
-  // printf("setAssoc\n");
-  //  get the index bits so that the tag can be extracted out of the address
+  // figures out index bits
   int num_index_bits = LOG2(ucache->n_sets);
+  // gets tag out of address
+  unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
+  //  get the index bits so that the tag can be extracted out of the address
+  //int num_index_bits = LOG2(ucache->n_sets);
 
   // the number of tag bits is the left over from index bits and offset bits
   //  number of tag bits is 32 - (num_index_bits + offset bits)
@@ -287,17 +292,25 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
   // number of index bits = 9
   // number of offset bits = 4
   // the tag bits are bits 14-31
-  unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
+  //unsigned int addr_tag = extractBits(addr, 32 - (num_index_bits + ucache->index_mask_offset), num_index_bits + ucache->index_mask_offset);
   // addr_tag is now 0000 0000 0100 0000 101
   // printf("tag  = %-12x\n", addr_tag);
 
   unsigned index_u = (addr & ucache->index_mask) >> ucache->index_mask_offset;
-  // printf("addr,index,tag: %-12x %-8x %-12x\n", addr, index_u, addr_tag);
+  printf("index mask offset, index mask:%-8x %-8x\n",ucache->index_mask_offset,ucache->index_mask);
+  printf("addr,index,tag: %-12x %-8x %-12x\n", addr, index_u, addr_tag);
+  printf("ucache->index_mask,index,ucache->index_mask_offset,: %-12x %-8x %-12x\n", ucache->index_mask, index_u, ucache->index_mask_offset);
+  printf("works1\n");
 
-  if (ucache->LRU_head[index_u] != NULL && ucache->LRU_head[index_u]->tag == addr_tag)
+  
+  //if (ucache->LRU_head[index_u]->tag == addr_tag)
+  printf("value =%d \n",ucache->LRU_head[index_u]);
+  printf("ucache->index_mask,index,ucache->index_mask_offset,: %-12x %-8x %-12x\n", ucache->index_mask, index_u, ucache->index_mask_offset);
+  if ((ucache->LRU_head[index_u] != NULL) && (ucache->LRU_head[index_u]->tag == addr_tag))
   {
 
     // HIT
+    printf("works2\n");
     if (access_type == 0 || access_type == 1)
     {
       cache_stat_data.accesses++;
@@ -308,7 +321,7 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
     }
     if (access_type == 0 || access_type == 2)
     {
-      // read HIT
+      // read HIT                                                                                                                                                         
       Pcache_line temp = ucache->LRU_head[index_u];
       delete (&ucache->LRU_head[index_u], &ucache->LRU_tail[index_u], temp);
       insert(&ucache->LRU_head[index_u], &ucache->LRU_tail[index_u], temp);
@@ -339,12 +352,12 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
         //cache_stat->replacements++;
         if (access_type == 0 || access_type == 1)
         {
-          // printf("                  replace4\n");
+           printf("                  replace4\n");
           cache_stat_data.replacements++;
         }
         else
         {
-          // printf("                  replace5\n");
+           printf("                  replace5\n");
           cache_stat_inst.replacements++;
         }
       }
@@ -355,6 +368,7 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
   }
   else
   {
+    printf("works3\n");
     // MISS
     if (ucache->LRU_head[index_u]->dirty == 1)
     {
@@ -380,11 +394,13 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
       */
     }
     // also below check to see where in if it's supposed to be
-    if(access_type == 0 || access_type == 1){
+    if(access_type == 0 || access_type == 1)
+    {
       cache_stat_data.accesses++;
       cache_stat_data.misses++;
     }
-    else{
+    else
+    {
       cache_stat_inst.accesses++;
       cache_stat_inst.misses++;
     }
@@ -415,12 +431,12 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
         // Replacement count
         if (access_type == 0 || access_type == 1)
         {
-          // printf("                  replace7\n");
+           printf("                  replace7\n");
           cache_stat_data.replacements++;
         }
         else
         {
-          // printf("                  replace8\n");
+           printf("                  replace8\n");
           cache_stat_inst.replacements++;
         }
       }
@@ -442,8 +458,9 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
     }
     else
     {
+      printf("works5555\n");
       // MISS write
-      if (!cache_writeback)
+      if (cache_writeback == FALSE)
       {
         // write through
         if (ucache->set_contents[index_u] < ucache->associativity)
@@ -460,12 +477,12 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
           // Replacement count
           if (access_type == 0 || access_type == 1)
           {
-            // printf("                  replace10\n");
+             printf("                  replace10\n");
             cache_stat_data.replacements++;
           }
           else
           {
-            // printf("                  replace11\n");
+             printf("                  replace11\n");
             cache_stat_inst.replacements++;
           }
         }
@@ -487,14 +504,13 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
       else
       {
         // write back policy
+        printf("writeback working\n");
         ucache->LRU_head[index_u]->dirty = 1;
         if (ucache->LRU_head[index_u]->tag != addr_tag)
-        {
-          // cacheStat->replacements++;
-          // Replacement count
+        {          // cacheStat->replacements++;
+         // Replacement count
           if (access_type == 0 || access_type == 1)
-          {
-            // printf("                  replace13\n");
+          {            // printf("                  replace13\n");
             cache_stat_data.replacements++;
           }
           else
@@ -503,10 +519,12 @@ void setAssoc(int index_mask_offset, int addr, int access_type, Pcache ucache, c
             cache_stat_inst.replacements++;
           }
         }
-        ucache->LRU_head[index_u]->tag = addr_tag;
+      ucache->LRU_head[index_u]->tag = addr_tag;
       }
     }
+    
   }
+  printf("setAssoc1\n");
 }
 /************************************************************/
 
@@ -527,7 +545,8 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
   // printf("tag  = %-12x\n", addr_tag);
 
   unsigned index_u = (addr & ucache->index_mask) >> ucache->index_mask_offset;
-  // printf("addr,index,tag: %-12x %-8x %-12x\n", addr, index_u, addr_tag);
+  //printf("ucache->index_mask,index,ucache->index_mask_offset: %-12x %-8x %-12x\n", ucache->index_mask, index_u, ucache->index_mask_offset);
+  //exit(1);
 
   // printf("index_u = %d\n", index_u);
   // Then, check the cache line at this index, my cache.LRU head[index]. If the cache line has a
@@ -585,19 +604,19 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
         ucache->LRU_head[index_u]->dirty = 0; //   write back makes it clean?
       }
 
-      if (ucache->LRU_head[index_u]->tag != addr_tag)
+      if(ucache->LRU_head[index_u]->tag != addr_tag)
       {
-        // printf("                  replace15\n");
+         printf("                  replace15\n");
         cacheStat->replacements++;
         // Replacement count
         if (access_type == 0 || access_type == 1)
         {
-          // printf("                  replace16\n");
+         printf("                  replace16\n");
           cache_stat_data.replacements++;
         }
         else
         {
-          // printf("                  replace17\n");
+           printf("                  replace17\n");
           cache_stat_inst.replacements++;
         }
       }
@@ -679,12 +698,12 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
         // Replacement count
         if (access_type == 0 || access_type == 1)
         {
-          // printf("                  replace18\n");
+           //printf("                  replace18\n");
           cache_stat_data.replacements++;
         }
         else
         {
-          // printf("                  replace19\n");
+           //printf("                  replace19\n");
           cache_stat_inst.replacements++;
         }
       }
@@ -706,6 +725,7 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
       {
         // write back policy
         ucache->LRU_head[index_u]->dirty = 1;
+        /*
         if (ucache->LRU_head[index_u]->tag != addr_tag)
         {
           // cacheStat->replacements++;
@@ -717,13 +737,28 @@ void directMap(int index_mask_offset, int addr, int access_type, Pcache ucache, 
           }
           else
           {
-            // printf("                  replace22\n");
+             printf("                  replace22\n");
             cache_stat_inst.replacements++;
           }
+        
         }
+        */
+        if (access_type == 0 || access_type == 1)
+          {
+            //printf("                  replace21");
+            cache_stat_data.replacements++;
+          }
+        else
+        {
+          //printf("                  replace22");
+          cache_stat_inst.replacements++;
+        }
+
         ucache->LRU_head[index_u]->tag = addr_tag;
       }
     }
+    
+  
   }
 }
 /************************************************************/
@@ -799,6 +834,7 @@ void perform_access(addr, access_type) unsigned addr, access_type;
       // unified cache
       // do data cache
       // changed dcache to icahce
+      //printf("      SetAssoc working\n");
       setAssoc(index_mask_offset, addr, access_type, dcache, &cache_stat_data);
     }
   }
